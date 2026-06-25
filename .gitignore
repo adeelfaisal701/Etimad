@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+jspm_packages/
+web_modules/
+
+# Production builds
+dist/
+build/
+.next/
+out/
+
+# Environment files (highly critical for security)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS / Temporary files
+.DS_Store
+Thumbs.db
+*.log
+.git_backup/
