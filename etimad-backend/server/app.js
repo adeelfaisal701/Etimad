@@ -16,6 +16,9 @@ import checkoutRoutes from "./routes/checkoutRoutes.js";
 import stripeRoutes from "./routes/stripe.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 
+import notificationRoutes from "./routes/notificationRoutes.js";
+import activityRoutes from "./routes/activityRoutes.js";
+
 // dotenv.config();
 
 const app = express();
@@ -38,4 +41,6 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/stripe", stripeRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/activities", activityRoutes);
 export default app;

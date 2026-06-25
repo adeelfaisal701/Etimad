@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { logActivity } from "../utils/logger.js";
 
 // REGISTER
 export const register = async (req, res) => {
@@ -20,6 +21,8 @@ export const register = async (req, res) => {
       password: hashed,
       role
     });
+
+    await logActivity(user._id, "Profile Update", `Registered account: ${name} as ${role}`);
 
     res.json(user);
   } catch (err) {
@@ -67,6 +70,8 @@ export const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    await logActivity(user._id, "Login", "User logged in successfully");
+
     res.json({
       token,
       user
@@ -104,6 +109,8 @@ export const switchRole = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
+
+    await logActivity(user._id, "Login", `Switched active dashboard view to ${user.role}`);
 
     res.json({
       token,

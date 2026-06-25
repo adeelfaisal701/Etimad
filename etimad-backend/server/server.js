@@ -17,8 +17,15 @@ const io = new Server(server, {
   }
 });
 
+app.set("io", io);
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  socket.on("joinUser", (userId) => {
+    socket.join(userId);
+    console.log(`Socket ${socket.id} joined user room: ${userId}`);
+  });
 
   socket.on("joinConversation", (conversationId) => {
     socket.join(conversationId);
