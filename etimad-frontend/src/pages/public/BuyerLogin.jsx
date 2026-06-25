@@ -14,8 +14,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [globalError, setGlobalError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (user) {
@@ -23,148 +23,402 @@ export default function Login() {
     }
   }, [user, nav]);
 
+  const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const isValidPhone = (v) => /^(\+92|0)?[0-9]{10,12}$/.test(v.replace(/\s|-/g, ""));
+
+  const validate = () => {
+    const errors = {};
+    setGlobalError("");
+
+    const ep = loginInput.trim();
+    if (!ep) {
+      errors.emailPhone = "This field is required.";
+    } else if (!isValidEmail(ep) && !isValidPhone(ep)) {
+      errors.emailPhone = "Enter a valid email or phone number.";
+    }
+
+    if (!password) {
+      errors.password = "Password is required.";
+    } else if (password.length < 6) {
+      errors.password = "Password must be at least 6 characters.";
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
-    setError("");
-    setSuccess(false);
-
-    if (!loginInput.trim()) {
-      setError("Email or Phone Number is required");
-      return;
-    }
-    if (!password) {
-      setError("Password is required");
-      return;
-    }
+    if (!validate()) return;
 
     setLoading(true);
     try {
       const loggedUser = await login({
-        login: loginInput,
+        login: loginInput.trim(),
         password: password,
       });
-      setSuccess(true);
-      setTimeout(() => {
-        if (loggedUser.role === "buyer") nav("/buyer-dashboard");
-        else if (loggedUser.role === "seller") nav("/seller");
-        else if (loggedUser.role === "admin") nav("/admin");
-      }, 800);
+      // Redirect handled by useEffect or navigate
+      if (loggedUser.role === "buyer") nav("/buyer-dashboard");
+      else if (loggedUser.role === "seller") nav("/seller");
+      else if (loggedUser.role === "admin") nav("/admin");
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid credentials. Please try again.");
+      setGlobalError(err.response?.data?.message || "No account found with this email or password. Please check and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
-      {/* MINIMAL TOP BAR */}
-      <header className="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-        <div onClick={() => nav("/")} className="text-2xl font-black text-[#22666B] cursor-pointer tracking-tight">Etimad</div>
-        <button onClick={() => nav("/")} className="flex items-center gap-2 text-sm text-slate-600 hover:text-[#22666B] transition font-semibold">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          Back to Home
-        </button>
+    <div style={{
+      fontFamily: 'Georgia, Cambria, "Times New Roman", Times, serif',
+      background: "#F0FDFD", // Light cool teal background
+      minHeight: "100vh",
+      color: "#1A1A2E",
+      display: "flex",
+      flexDirection: "column"
+    }}>
+      <style>{`
+        .hover-teal:hover { color: #115E59 !important; }
+        .btn-signin {
+          width: 100%;
+          padding: 14px;
+          background: #115E59;
+          color: #FFFFFF;
+          font-size: 1rem;
+          font-weight: 700;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          box-shadow: 0 2px 12px rgba(17, 94, 89, 0.25);
+          transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          letter-spacing: 0.2px;
+        }
+        .btn-signin:hover { background: #134E4A; box-shadow: 0 4px 18px rgba(17, 94, 89, 0.35); }
+        .btn-signin:active { transform: translateY(1px); }
+        .btn-signin:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        .spinner {
+          display: none;
+          width: 18px; height: 18px;
+          border: 2px solid rgba(255,255,255,0.4);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-signin.loading .spinner { display: block; }
+        .btn-signin.loading .btn-text { opacity: 0.8; }
+        .input-teal:focus {
+          border-color: #115E59 !important;
+          box-shadow: 0 0 0 3px rgba(17, 94, 89, 0.12) !important;
+        }
+      `}</style>
+
+      {/* HEADER */}
+      <header style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "18px 40px",
+        background: "#FFFFFF",
+        borderBottom: "1px solid #E5E7EB",
+        width: "100%"
+      }}>
+        <div onClick={() => nav("/")} style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          cursor: "pointer"
+        }}>
+          <div style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            background: "#115E59",
+            color: "#FFFFFF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "bold",
+            fontSize: "1.1rem"
+          }}>E</div>
+          <span style={{
+            fontSize: "1.4rem",
+            fontWeight: "800",
+            color: "#115E59",
+            letterSpacing: "-0.5px"
+          }}>Etimad</span>
+        </div>
+        <div onClick={() => nav("/")} style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          color: "#4B5563",
+          fontSize: "0.9rem",
+          fontWeight: "500",
+          cursor: "pointer",
+          transition: "color 0.2s"
+        }} className="hover-teal">
+          Back to home
+        </div>
       </header>
 
-      {/* CENTERED AUTH CARD */}
-      <div className="flex-1 flex items-center justify-center p-6 pb-20">
-        <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl w-full max-w-[450px] border border-slate-100 animate-fadeIn">
-          
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome Back</h2>
-          <p className="text-sm text-slate-500 mb-8">Sign in to your account to continue shopping</p>
+      {/* MAIN CONTAINER */}
+      <main style={{
+        flex: "1",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 20px"
+      }}>
+        <div style={{
+          background: "#FFFFFF",
+          borderRadius: "20px",
+          boxShadow: "0 4px 32px rgba(17, 94, 89, 0.08), 0 1px 4px rgba(0,0,0,0.06)",
+          padding: "44px 48px",
+          width: "100%",
+          maxWidth: "460px"
+        }}>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-2xl border border-red-100 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <span>{error}</span>
+          <div style={{ marginBottom: "32px" }}>
+            <h1 style={{
+              fontSize: "1.75rem",
+              fontWeight: "800",
+              color: "#1A1A2E",
+              letterSpacing: "-0.4px",
+              lineHeight: "1.2"
+            }}>Welcome back to <span style={{ color: "#115E59" }}>Etimad</span></h1>
+            <p style={{
+              marginTop: "8px",
+              color: "#4B5563",
+              fontSize: "0.9rem",
+              lineHeight: "1.5"
+            }}>Sign in to continue shopping from 50,000+ products.</p>
+          </div>
+
+          {/* Global Alert */}
+          {globalError && (
+            <div style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "10px",
+              padding: "13px 16px",
+              borderRadius: "8px",
+              fontSize: "0.85rem",
+              fontWeight: "500",
+              marginBottom: "22px",
+              lineHeight: "1.4",
+              background: "#FEF2F2",
+              color: "#B91C1C",
+              border: "1px solid #FECACA"
+            }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" style={{ flexShrink: 0, width: "16px", height: "16px", marginTop: "1px" }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>{globalError}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email or Phone field */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Email or Phone Number</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </span>
+          <form onSubmit={handleLogin} noValidate>
+
+            {/* Email / Phone */}
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{
+                display: "block",
+                fontSize: "0.85rem",
+                fontWeight: "600",
+                color: "#1A1A2E",
+                marginBottom: "6px"
+              }}>Email Address or Phone Number</label>
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
                   type="text"
-                  placeholder="Enter your email or phone"
+                  placeholder="you@example.com or 03001234567"
                   value={loginInput}
-                  onChange={(e) => setLoginInput(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#22666B] focus:bg-white focus:outline-none transition text-slate-800"
+                  onChange={(e) => {
+                    setLoginInput(e.target.value);
+                    if (fieldErrors.emailPhone) setFieldErrors({ ...fieldErrors, emailPhone: "" });
+                  }}
+                  className="input-teal"
+                  style={{
+                    width: "100%",
+                    padding: "13px 16px",
+                    border: fieldErrors.emailPhone ? "1.5px solid #EF4444" : "1.5px solid #E5E7EB",
+                    borderRadius: "8px",
+                    fontSize: "0.95rem",
+                    color: "#1A1A2E",
+                    background: "#FFFFFF",
+                    outline: "none",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                    fontFamily: "Georgia, serif"
+                  }}
                 />
               </div>
+              {fieldErrors.emailPhone && (
+                <div style={{ marginTop: "5px", fontSize: "0.78rem", color: "#EF4444", fontWeight: "500" }}>
+                  {fieldErrors.emailPhone}
+                </div>
+              )}
             </div>
 
-            {/* Password field */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-semibold text-slate-700">Password</label>
-                <a href="#" onClick={(e) => { e.preventDefault(); alert("Reset password link sent to your registered contact details."); }} className="text-xs font-semibold text-[#22666B] hover:underline">Forgot Password?</a>
-              </div>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </span>
+            {/* Password */}
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{
+                display: "block",
+                fontSize: "0.85rem",
+                fontWeight: "600",
+                color: "#1A1A2E",
+                marginBottom: "6px"
+              }}>Password</label>
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-[#22666B] focus:bg-white focus:outline-none transition text-slate-800"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: "" });
+                  }}
+                  className="input-teal"
+                  style={{
+                    width: "100%",
+                    padding: "13px 46px 13px 16px",
+                    border: fieldErrors.password ? "1.5px solid #EF4444" : "1.5px solid #E5E7EB",
+                    borderRadius: "8px",
+                    fontSize: "0.95rem",
+                    color: "#1A1A2E",
+                    background: "#FFFFFF",
+                    outline: "none",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                    fontFamily: "Georgia, serif"
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-[#22666B]"
+                  style={{
+                    position: "absolute",
+                    right: "14px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#9CA3AF",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "0",
+                    transition: "color 0.2s"
+                  }}
+                  className="hover-teal"
                 >
                   {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" style={{ width: "18px", height: "18px" }}>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 012.59-4.342M9.88 9.88a3 3 0 104.243 4.243M3 3l18 18"/>
+                    </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" style={{ width: "18px", height: "18px" }}>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
                   )}
                 </button>
               </div>
+              {fieldErrors.password && (
+                <div style={{ marginTop: "5px", fontSize: "0.78rem", color: "#EF4444", fontWeight: "500" }}>
+                  {fieldErrors.password}
+                </div>
+              )}
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center justify-between mt-5 mb-6">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 text-sm">
+            {/* Remember + Forgot */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "28px",
+              marginTop: "-4px"
+            }}>
+              <label style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                color: "#4B5563",
+                fontWeight: "500",
+                userSelect: "none"
+              }}>
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="accent-[#22666B] rounded border-slate-300 w-4 h-4 cursor-pointer"
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    accentColor: "#115E59",
+                    cursor: "pointer"
+                  }}
                 />
-                Remember Me
+                Remember me
               </label>
+              <a href="#" onClick={(e) => { e.preventDefault(); alert("Reset instructions sent to your registered contact details."); }} style={{
+                fontSize: "0.85rem",
+                color: "#115E59",
+                fontWeight: "600",
+                textDecoration: "none"
+              }} className="hover-underline">Forgot Password?</a>
             </div>
 
-            {/* Submit Button */}
+            {/* Sign In Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#22666B] text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-[#1a4f52] transition flex items-center justify-center gap-2 disabled:opacity-75"
+              className={`btn-signin ${loading ? "loading" : ""}`}
             >
-              {loading ? (
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-              ) : success ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              ) : null}
-              {loading ? "Signing In..." : success ? "Success!" : "Sign In"}
+              <div className="spinner" id="spinner"></div>
+              <span className="btn-text">Sign In</span>
             </button>
+
           </form>
 
-          {/* Signup Suggestion */}
-          <div className="mt-8 text-center text-sm text-slate-500">
-            Don't have an account? <span onClick={() => nav("/signup")} className="text-[#22666B] font-bold hover:underline cursor-pointer">Sign up free</span>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            margin: "24px 0"
+          }}>
+            <hr style={{ flex: "1", border: "none", borderTop: "1px solid #E5E7EB" }} />
+            <span style={{ fontSize: "0.78rem", color: "#9CA3AF", fontStyle: "Georgia, serif" }}>Don't have an account?</span>
+            <hr style={{ flex: "1", border: "none", borderTop: "1px solid #E5E7EB" }} />
+          </div>
+
+          <div style={{ textAlign: "center", fontSize: "0.88rem", color: "#4B5563" }}>
+            <a href="#" onClick={(e) => { e.preventDefault(); nav("/signup"); }} style={{
+              color: "#115E59",
+              fontWeight: "700",
+              textDecoration: "none"
+            }}>Create a free account →</a>
+          </div>
+
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            marginTop: "24px",
+            fontSize: "0.78rem",
+            color: "#9CA3AF"
+          }}>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" style={{ width: "14px", height: "14px", color: "#10B981" }}>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            Secure login · Buyer Protection · 100% Safe
           </div>
 
         </div>
-      </div>
+      </main>
     </div>
   );
 }
